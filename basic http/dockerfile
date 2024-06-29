@@ -1,0 +1,13 @@
+FROM node:22.3.0-slim
+
+LABEL maintainer="Ari Cerrahyan <aricerrahyan@gmail.com>" \
+        description="This is a basic http server" \
+        version="what ever i want"
+
+WORKDIR /app
+
+COPY .. .
+
+EXPOSE 3000
+
+CMD ["node", "server.js"]

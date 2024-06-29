@@ -6,25 +6,42 @@ const server = net.createServer((socket) => {
         console.log(`${socket.remoteAddress} disconnected`);
     })
 
-    socket.on('data', (data) => {
-        [method, path, data] = parseRequest(data);
+    socket.on('data', (httpRequest) => {
+        [method, path, data] = parseRequest(httpRequest);
         
         switch (path) {
             case '/':
                 if (method === 'GET') {
                     response(socket, 200, 'text/html', '<h1>Hello World</h1>');
+                    break;
                 }
+                notFoundError(socket);
                 break;
             case '/json':
                 if (method === 'GET') {
                     response(socket, 200, 'text/json', JSON.stringify({ message: 'Hello World' }));
+                    break;
                 }
+                notFoundError(socket);
+                break;
+            case '/data':
+                if (method === 'POST' && data) {
+                    response(socket, 200, 'text/html', `<h1>Data received: ${data}</h1>`);
+                    break;
+                }
+                notFoundError(socket);
                 break;
             default:
-                response(socket, 404, 'text/html', '<h1>404 Not Found</h1>');
+                notFoundError(socket);
         }
     })
 })
+
+
+function notFoundError(socket) {
+    response(socket, 404, 'text/html', '<h1>404 Not Found</h1>');
+}
+
 
 function response(socket, statusCode, contentType, data) {
     kvStatusCode = {
@@ -37,8 +54,9 @@ function response(socket, statusCode, contentType, data) {
     socket.end();
 }
 
-function parseRequest(request) {
-    const requestArray = request.toString().split('\r\n\r\n');
+
+function parseRequest(httpRequest) {
+    const requestArray = httpRequest.toString().split('\r\n\r\n');
     const data = requestArray[1];
     const httpHeaderArray = requestArray[0].split('\r\n');
     const method = httpHeaderArray[0].split(' ')[0];
@@ -47,5 +65,7 @@ function parseRequest(request) {
     return [method, path, data];
 }
 
-console.log('Server listening on port 3000');
-server.listen(3000);
+
+const port = 3000;
+console.log(`Server listening on port ${port}`);
+server.listen(port);
