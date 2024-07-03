@@ -6,8 +6,7 @@ const port = 5432;
 const user = 'admin';
 const db = 'mydb';
 const password = 'admin';
-const majorVersion = 3;
-const minorVersion = 0;
+
 
 const conOptions = {
     host: host,
@@ -25,11 +24,20 @@ client.on('data', (data) => {
     switch (String.fromCharCode(data[0])) {
         case 'R':
             console.log("\nAuthentication request received");
+            console.log(data);
+            let identifierBuffer = Buffer.from('p');
+            let lengthBuffer = Buffer.alloc(4);
+            let saslBuffer = Buffer.from('SCRAM-SHA-256', 'utf-8');
+            lengthBuffer.writeInt32BE(identifierBuffer.length + saslBuffer.length);
+            let initialResponse = Buffer.concat([identifierBuffer, lengthBuffer, saslBuffer]);
+            client.write(initialResponse);
             break;
         default:
             console.log("\nUnknown message type");
+            console.log(data.toString());
+            break;
     }
-    client.end();
+    // client.end();
 });
 
 client.on('end', () => {
@@ -46,6 +54,9 @@ function startUpMessage(user, database) {
 
     // TODO: Refactor
 
+    const majorVersion = 3;
+    const minorVersion = 0;
+
     const int32Size = Int32Array.BYTES_PER_ELEMENT; // 4 bytes
     const int16Size = Int16Array.BYTES_PER_ELEMENT; // 2 bytes
 
@@ -59,12 +70,12 @@ function startUpMessage(user, database) {
 
     let userBuffer = Buffer.from(`user\0${user}\0`, 'utf-8');
     let dbBuffer = Buffer.from(`database\0${database}\0\0`, 'utf-8');
-    let params = Buffer.concat([userBuffer, dbBuffer]);
+    let paramsBuffer = Buffer.concat([userBuffer, dbBuffer]);
 
     let lengthBuffer = Buffer.alloc(int32Size);
-    lengthBuffer.writeInt32BE(lengthBuffer.length + versionBuffer.length + params.length, 0);
+    lengthBuffer.writeInt32BE(lengthBuffer.length + versionBuffer.length + paramsBuffer.length);
 
-    let startMessage = Buffer.concat([lengthBuffer, versionBuffer, params]);
+    let startMessage = Buffer.concat([lengthBuffer, versionBuffer, paramsBuffer]);
 
     return startMessage;
 }
